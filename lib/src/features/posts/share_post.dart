@@ -12,9 +12,10 @@ Future<bool> sharePostLink({
   return await showModalBottomSheet<bool>(
         context: context,
         useSafeArea: true,
+        isScrollControlled: true,
         backgroundColor: Colors.transparent,
         builder: (sheetContext) => FractionallySizedBox(
-          heightFactor: 0.28,
+          heightFactor: 0.32,
           child: _PostShareSheet(postId: postId),
         ),
       ) ??
@@ -26,13 +27,16 @@ class _PostShareSheet extends StatelessWidget {
 
   final int postId;
 
-  String get _shareText => 'Mira este post de Pickados: ${AppConfig.webBaseUrl}/posts/$postId';
+  String get _shareText =>
+      'Mira este post de Pickados: ${AppConfig.webBaseUrl}/posts/$postId';
   String get _shareLink => '${AppConfig.webBaseUrl}/posts/$postId';
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.extension<PickadosColors>()!;
+    final width = MediaQuery.sizeOf(context).width;
+    final tileWidth = ((width - 36 - 30) / 4).clamp(68.0, 88.0);
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -40,7 +44,12 @@ class _PostShareSheet extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+        padding: EdgeInsets.fromLTRB(
+          18,
+          10,
+          18,
+          18 + MediaQuery.viewPaddingOf(context).bottom,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -59,7 +68,10 @@ class _PostShareSheet extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Compartir post', style: theme.textTheme.titleMedium),
+                      Text(
+                        'Compartir post',
+                        style: theme.textTheme.titleMedium,
+                      ),
                       const SizedBox(height: 2),
                       Text(
                         'Elige como quieres enviarlo',
@@ -75,9 +87,13 @@ class _PostShareSheet extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 10),
-            Row(
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              spacing: 10,
+              runSpacing: 10,
               children: [
-                Expanded(
+                SizedBox(
+                  width: tileWidth,
                   child: _ShareActionTile(
                     label: 'Mensaje',
                     icon: const Icon(Icons.message_rounded),
@@ -92,19 +108,17 @@ class _PostShareSheet extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
+                SizedBox(
+                  width: tileWidth,
                   child: _ShareActionTile(
                     label: 'WhatsApp',
                     icon: const _WhatsAppIcon(),
-                    onTap: () => _handleAction(
-                      context,
-                      () => _launchWhatsApp(context),
-                    ),
+                    onTap: () =>
+                        _handleAction(context, () => _launchWhatsApp(context)),
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
+                SizedBox(
+                  width: tileWidth,
                   child: _ShareActionTile(
                     label: 'Facebook',
                     icon: const Icon(Icons.facebook_rounded),
@@ -119,15 +133,13 @@ class _PostShareSheet extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
+                SizedBox(
+                  width: tileWidth,
                   child: _ShareActionTile(
                     label: 'Copy link',
                     icon: const Icon(Icons.link_rounded),
-                    onTap: () => _handleAction(
-                      context,
-                      () => _copyLink(context),
-                    ),
+                    onTap: () =>
+                        _handleAction(context, () => _copyLink(context)),
                   ),
                 ),
               ],
@@ -170,20 +182,21 @@ class _PostShareSheet extends StatelessWidget {
 
   Future<bool> _launchUri(BuildContext context, Uri uri) async {
     try {
-      final opened = await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-      );
+      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
       if (!opened && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No se pudo abrir esta opcion de compartir.')),
+          const SnackBar(
+            content: Text('No se pudo abrir esta opcion de compartir.'),
+          ),
         );
       }
       return opened;
     } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No se pudo abrir esta opcion de compartir.')),
+          const SnackBar(
+            content: Text('No se pudo abrir esta opcion de compartir.'),
+          ),
         );
       }
       return false;

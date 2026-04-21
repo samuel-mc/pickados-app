@@ -152,12 +152,10 @@ class _HomeScreenState extends State<HomeScreen> {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (context) => Scaffold(
-          backgroundColor: Theme.of(context)
-              .extension<PickadosColors>()!
-              .pageGradientBottom,
-          appBar: AppBar(
-            title: const Text('Guardados'),
-          ),
+          backgroundColor: Theme.of(
+            context,
+          ).extension<PickadosColors>()!.pageGradientBottom,
+          appBar: AppBar(title: const Text('Guardados')),
           body: FeedScreen(
             apiClient: widget.apiClient,
             controller: _savedController,
@@ -206,9 +204,7 @@ class _HomeScreenState extends State<HomeScreen> {
         flexibleSpace: Container(
           decoration: BoxDecoration(
             color: colors.cardGlass,
-            border: Border(
-              bottom: BorderSide(color: colors.borderSoft),
-            ),
+            border: Border(bottom: BorderSide(color: colors.borderSoft)),
           ),
         ),
         title: Column(
@@ -233,7 +229,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
-          if (_currentIndex == 2)
+          if (_currentIndex == 1)
             IconButton(
               onPressed: () async {
                 final updated = await Navigator.of(context).push<bool>(
@@ -281,7 +277,7 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
-          if (_currentIndex == 2)
+          if (_currentIndex == 1)
             IconButton(
               onPressed: () {
                 _scaffoldKey.currentState?.openEndDrawer();
@@ -356,9 +352,9 @@ class _HomeScreenState extends State<HomeScreen> {
               },
               destinations: const [
                 NavigationDestination(
-                  icon: Icon(Icons.dynamic_feed_outlined),
-                  selectedIcon: Icon(Icons.dynamic_feed_rounded),
-                  label: 'Feed',
+                  icon: Icon(Icons.home_rounded),
+                  selectedIcon: Icon(Icons.home_rounded),
+                  label: 'Inicio',
                 ),
                 NavigationDestination(
                   icon: Icon(Icons.person_outline_rounded),

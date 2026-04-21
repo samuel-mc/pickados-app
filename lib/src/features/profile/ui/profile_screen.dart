@@ -14,7 +14,6 @@ import '../../feed/ui/post_card.dart';
 import '../../posts/share_post.dart';
 import '../../posts/ui/post_comments_sheet.dart';
 import '../../posts/ui/post_detail_screen.dart';
-import '../../posts/ui/post_image_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
@@ -328,11 +327,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       : () async {
                           await Navigator.of(context).push(
                             MaterialPageRoute<void>(
-                              builder: (context) => PostImageScreen(
-                                imageUrl: post.mediaUrls.first,
+                              builder: (context) => PostDetailScreen(
+                                apiClient: widget.apiClient,
+                                postId: post.id,
+                                currentUserId:
+                                    widget.sessionController.session?.userId,
                               ),
                             ),
                           );
+                          if (context.mounted) {
+                            _load();
+                          }
                         },
                   onOpenDetail: () async {
                     await Navigator.of(context).push(
@@ -739,6 +744,17 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 18),
+                    TextFormField(
+                      controller: _bioController,
+                      minLines: 4,
+                      maxLines: 6,
+                      decoration: const InputDecoration(
+                        labelText: 'Bio',
+                        hintText:
+                            'Cuéntale a la comunidad tu enfoque, estilo o especialidad.',
+                      ),
+                    ),
                     const SizedBox(height: 24),
                     TextFormField(
                       controller: _nameController,
@@ -752,13 +768,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                       decoration: const InputDecoration(labelText: 'Apellido'),
                       validator: (value) =>
                           value == null || value.trim().isEmpty ? 'Escribe tu apellido.' : null,
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _bioController,
-                      minLines: 4,
-                      maxLines: 6,
-                      decoration: const InputDecoration(labelText: 'Bio'),
                     ),
                     const SizedBox(height: 22),
                     Text('Competiciones favoritas', style: theme.textTheme.titleMedium),

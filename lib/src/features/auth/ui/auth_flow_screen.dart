@@ -248,7 +248,6 @@ class _SignupScreenState extends State<SignupScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _birthDateController = TextEditingController();
-  final _bioController = TextEditingController();
 
   bool _submitting = false;
   String? _errorMessage;
@@ -262,7 +261,6 @@ class _SignupScreenState extends State<SignupScreen> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _birthDateController.dispose();
-    _bioController.dispose();
     super.dispose();
   }
 
@@ -321,7 +319,7 @@ class _SignupScreenState extends State<SignupScreen> {
         email: _emailController.text,
         password: _passwordController.text,
         birthDate: _birthDateController.text,
-        bio: _bioController.text,
+        bio: '',
       );
 
       if (!mounted) {
@@ -362,11 +360,12 @@ class _SignupScreenState extends State<SignupScreen> {
     return AuthScaffold(
       title: 'Registro tipster',
       subtitle:
-          'Completa tu perfil inicial para empezar a publicar picks desde la app.',
+          'Crea tu cuenta con lo esencial. Tu bio la podras completar despues en editar perfil.',
       onBack: widget.onBack,
       child: Form(
         key: _formKey,
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (_errorMessage != null) ...[
               _MessageCard(
@@ -377,128 +376,171 @@ class _SignupScreenState extends State<SignupScreen> {
               ),
               const SizedBox(height: 16),
             ],
-            TextFormField(
-              controller: _nameController,
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(labelText: 'Nombre'),
-              validator: (value) {
-                if (value == null || value.trim().length < 2) {
-                  return 'Escribe un nombre valido.';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _lastnameController,
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(labelText: 'Apellido'),
-              validator: (value) {
-                if (value == null || value.trim().length < 2) {
-                  return 'Escribe un apellido valido.';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _usernameController,
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(labelText: 'Username'),
-              validator: (value) {
-                final trimmed = value?.trim() ?? '';
-                if (trimmed.length < 5) {
-                  return 'Usa al menos 5 caracteres.';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _emailController,
-              textInputAction: TextInputAction.next,
-              keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(
-                labelText: 'Correo electronico',
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF7FAFD),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: const Color(0xFFE3EBF3)),
               ),
-              validator: (value) {
-                final trimmed = value?.trim() ?? '';
-                if (!_isValidEmail(trimmed)) {
-                  return 'Escribe un correo valido.';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _birthDateController,
-              readOnly: true,
-              onTap: _pickBirthDate,
-              decoration: const InputDecoration(
-                labelText: 'Fecha de nacimiento',
-                suffixIcon: Icon(Icons.calendar_today_rounded),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Datos basicos',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Esto define tu identidad inicial dentro de Pickados.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _nameController,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(labelText: 'Nombre'),
+                    validator: (value) {
+                      if (value == null || value.trim().length < 2) {
+                        return 'Escribe un nombre valido.';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _lastnameController,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(labelText: 'Apellido'),
+                    validator: (value) {
+                      if (value == null || value.trim().length < 2) {
+                        return 'Escribe un apellido valido.';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _usernameController,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(labelText: 'Username'),
+                    validator: (value) {
+                      final trimmed = value?.trim() ?? '';
+                      if (trimmed.length < 5) {
+                        return 'Usa al menos 5 caracteres.';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _emailController,
+                    textInputAction: TextInputAction.next,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'Correo electronico',
+                    ),
+                    validator: (value) {
+                      final trimmed = value?.trim() ?? '';
+                      if (!_isValidEmail(trimmed)) {
+                        return 'Escribe un correo valido.';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _birthDateController,
+                    readOnly: true,
+                    onTap: _pickBirthDate,
+                    decoration: const InputDecoration(
+                      labelText: 'Fecha de nacimiento',
+                      suffixIcon: Icon(Icons.calendar_today_rounded),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Selecciona tu fecha de nacimiento.';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
               ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Selecciona tu fecha de nacimiento.';
-                }
-                return null;
-              },
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              controller: _bioController,
-              minLines: 3,
-              maxLines: 5,
-              decoration: const InputDecoration(labelText: 'Bio'),
-              validator: (value) {
-                if ((value?.trim().length ?? 0) < 10) {
-                  return 'Comparte una bio breve de al menos 10 caracteres.';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _passwordController,
-              obscureText: true,
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(labelText: 'Contrasena'),
-              validator: _validatePassword,
-            ),
-            const SizedBox(height: 16),
-            TextFormField(
-              controller: _confirmPasswordController,
-              obscureText: true,
-              onFieldSubmitted: (_) => _submit(),
-              decoration: const InputDecoration(
-                labelText: 'Confirmar contrasena',
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: const Color(0xFFE3EBF3)),
               ),
-              validator: (value) {
-                if (value != _passwordController.text) {
-                  return 'Las contrasenas no coinciden.';
-                }
-                return null;
-              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Seguridad',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Usa una contrasena segura para proteger tu cuenta.',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(labelText: 'Contrasena'),
+                    validator: _validatePassword,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _confirmPasswordController,
+                    obscureText: true,
+                    onFieldSubmitted: (_) => _submit(),
+                    decoration: const InputDecoration(
+                      labelText: 'Confirmar contrasena',
+                    ),
+                    validator: (value) {
+                      if (value != _passwordController.text) {
+                        return 'Las contrasenas no coinciden.';
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _submitting ? null : _submit,
-              child: _submitting
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Text('Crear cuenta tipster'),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _submitting ? null : _submit,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: _submitting
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Crear cuenta tipster'),
+              ),
             ),
             const SizedBox(height: 12),
-            TextButton(
-              onPressed: widget.onLogin,
-              child: const Text('Ya tengo cuenta'),
+            Center(
+              child: TextButton(
+                onPressed: widget.onLogin,
+                child: const Text('Ya tengo cuenta'),
+              ),
             ),
           ],
         ),
@@ -930,6 +972,7 @@ class AuthScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isCompact = MediaQuery.sizeOf(context).width < 600;
 
     return Scaffold(
       body: Container(
@@ -948,7 +991,7 @@ class AuthScaffold extends StatelessWidget {
                 constraints: const BoxConstraints(maxWidth: 520),
                 child: Card(
                   child: Padding(
-                    padding: const EdgeInsets.all(28),
+                    padding: EdgeInsets.all(isCompact ? 20 : 28),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -958,7 +1001,12 @@ class AuthScaffold extends StatelessWidget {
                           label: const Text('Volver'),
                         ),
                         const SizedBox(height: 8),
-                        Text(title, style: theme.textTheme.headlineMedium),
+                        Text(
+                          title,
+                          style: isCompact
+                              ? theme.textTheme.headlineSmall
+                              : theme.textTheme.headlineMedium,
+                        ),
                         const SizedBox(height: 10),
                         Text(subtitle, style: theme.textTheme.bodyMedium),
                         const SizedBox(height: 24),

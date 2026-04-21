@@ -1,13 +1,12 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-
 import '../../../core/models/post_models.dart';
 import '../../../services/api_client.dart';
 import '../../feed/ui/post_card.dart';
 import '../../profile/ui/public_profile_screen.dart';
 import '../share_post.dart';
+import 'post_comment_thread.dart';
 import 'post_image_screen.dart';
 
 class PostDetailScreen extends StatefulWidget {
@@ -39,6 +38,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
   bool _sendingComment = false;
   int? _replyingToCommentId;
   int? _sendingReplyForCommentId;
+  final Set<int> _expandedReplyCommentIds = <int>{};
   String? _errorMessage;
   PostItem? _post;
   List<CommentItem> _comments = const [];
@@ -87,6 +87,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       setState(() {
         _post = results[0] as PostItem;
         _comments = results[1] as List<CommentItem>;
+        _expandedReplyCommentIds.clear();
       });
       _registerViewIfNeeded();
       _scheduleHighlightScroll();
@@ -283,12 +284,13 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       }
 
       setState(() {
-        _comments = _insertReplyIntoTree(_comments, parentCommentId, created);
+        _comments = insertReplyIntoTree(_comments, parentCommentId, created);
         _post = _post?.copyWith(
           metrics: _post!.metrics.copyWith(
             commentsCount: _post!.metrics.commentsCount + 1,
           ),
         );
+        _expandedReplyCommentIds.add(parentCommentId);
         _replyingToCommentId = null;
         _sendingReplyForCommentId = null;
       });
@@ -329,7 +331,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
       }
 
       setState(() {
-        _comments = _updateCommentTree(
+        _comments = updateCommentTree(
           _comments,
           commentId,
           (current) => updated.copyWith(replies: current.replies),
@@ -486,7 +488,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
               onRefresh: _load,
               child: ListView(
                 controller: _scrollController,
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(4),
                 children: [
                   PickaPostCard(
                     post: _post!,
@@ -542,7 +544,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                           ),
                           const SizedBox(height: 14),
                           Container(
-                            // padding: const EdgeInsets.all(14),
+                            padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
                               color: const Color(0xFFF7FAFD),
                               borderRadius: BorderRadius.circular(24),
@@ -586,7 +588,7 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                               ],
                             ),
                           ),
-                          const SizedBox(height: 18),
+                          const SizedBox(height: 8),
                           if (_comments.isEmpty)
                             Container(
                               width: double.infinity,
@@ -607,16 +609,32 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                             ..._comments.map(
                               (comment) => Padding(
                                 padding: const EdgeInsets.only(bottom: 12),
-                                child: _CommentCard(
+                                child: PostCommentCard(
                                   key: _commentKeyFor(comment.id),
                                   comment: comment,
                                   commentKeyFor: _commentKeyFor,
+                                  maxReplyDepth: _maxReplyDepth,
                                   highlightCommentId: widget.highlightCommentId,
+                                  expandedReplyCommentIds:
+                                      _expandedReplyCommentIds,
                                   replyingToCommentId: _replyingToCommentId,
                                   replyControllerFor: _replyControllerFor,
                                   sendingReplyForCommentId:
                                       _sendingReplyForCommentId,
                                   onToggleLike: _toggleCommentLike,
+                                  onToggleReplies: (commentId) {
+                                    setState(() {
+                                      if (_expandedReplyCommentIds.contains(
+                                        commentId,
+                                      )) {
+                                        _expandedReplyCommentIds.remove(
+                                          commentId,
+                                        );
+                                      } else {
+                                        _expandedReplyCommentIds.add(commentId);
+                                      }
+                                    });
+                                  },
                                   onToggleReply: (commentId) {
                                     setState(() {
                                       _replyingToCommentId =
@@ -642,287 +660,4 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
             ),
     );
   }
-}
-
-class _CommentCard extends StatelessWidget {
-  const _CommentCard({
-    super.key,
-    required this.comment,
-    required this.commentKeyFor,
-    required this.highlightCommentId,
-    required this.replyingToCommentId,
-    required this.replyControllerFor,
-    required this.sendingReplyForCommentId,
-    required this.onToggleLike,
-    required this.onToggleReply,
-    required this.onSubmitReply,
-    this.depth = 0,
-  });
-
-  final CommentItem comment;
-  final GlobalKey Function(int commentId) commentKeyFor;
-  final int? highlightCommentId;
-  final int? replyingToCommentId;
-  final TextEditingController Function(int commentId) replyControllerFor;
-  final int? sendingReplyForCommentId;
-  final Future<void> Function(int commentId) onToggleLike;
-  final ValueChanged<int> onToggleReply;
-  final ValueChanged<int> onSubmitReply;
-  final int depth;
-
-  @override
-  Widget build(BuildContext context) {
-    final date = DateTime.tryParse(comment.createdAt)?.toLocal();
-    final formatted = date == null
-        ? comment.createdAt
-        : DateFormat('dd MMM • HH:mm').format(date);
-    final isReplyBoxOpen = replyingToCommentId == comment.id;
-    final replyController = replyControllerFor(comment.id);
-    final sendingReply = sendingReplyForCommentId == comment.id;
-    final showReplyingTo =
-        depth >= 2 &&
-        comment.replyingToUsername != null &&
-        comment.replyingToUsername!.trim().isNotEmpty;
-
-    return Container(
-      margin: EdgeInsets.only(left: depth * 18),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: highlightCommentId == comment.id
-            ? const Color(0xFFFFF2E8)
-            : depth == 0
-            ? const Color(0xFFF8FBFE)
-            : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: highlightCommentId == comment.id
-              ? const Color(0xFFED5F2F)
-              : const Color(0xFFE3EBF3),
-        ),
-        boxShadow: highlightCommentId == comment.id
-            ? const [
-                BoxShadow(
-                  color: Color(0x1AED5F2F),
-                  blurRadius: 18,
-                  offset: Offset(0, 8),
-                ),
-              ]
-            : null,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      comment.author.name,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '@${comment.author.username} • $formatted',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              FilledButton.tonalIcon(
-                onPressed: () {
-                  onToggleLike(comment.id);
-                },
-                icon: Icon(
-                  comment.likedByCurrentUser
-                      ? Icons.thumb_up_alt_rounded
-                      : Icons.thumb_up_alt_outlined,
-                  size: 16,
-                ),
-                label: Text('${comment.likesCount}'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: comment.likedByCurrentUser
-                      ? const Color(0xFF0F4C81)
-                      : const Color(0xFFEAF3FB),
-                  foregroundColor: comment.likedByCurrentUser
-                      ? Colors.white
-                      : const Color(0xFF0F4C81),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (showReplyingTo) ...[
-            const SizedBox(height: 8),
-            Text(
-              'Respondiendo a @${comment.replyingToUsername}',
-              style: const TextStyle(
-                color: Color(0xFF0F4C81),
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-          const SizedBox(height: 8),
-          Text(
-            comment.content,
-            style: const TextStyle(color: Color(0xFF334155), height: 1.45),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              if (depth < _PostDetailScreenState._maxReplyDepth)
-                TextButton.icon(
-                  onPressed: () {
-                    onToggleReply(comment.id);
-                  },
-                  icon: Icon(
-                    isReplyBoxOpen ? Icons.close_rounded : Icons.reply_rounded,
-                    size: 18,
-                  ),
-                  label: Text(isReplyBoxOpen ? 'Cancelar' : 'Responder'),
-                ),
-              if (comment.replies.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 10,
-                  ),
-                  child: Text(
-                    '${comment.replies.length} ${comment.replies.length == 1 ? 'respuesta' : 'respuestas'}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
-            ],
-          ),
-          if (depth < _PostDetailScreenState._maxReplyDepth &&
-              isReplyBoxOpen) ...[
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF7FAFD),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: const Color(0xFFE3EBF3)),
-              ),
-              child: Column(
-                children: [
-                  TextField(
-                    controller: replyController,
-                    minLines: 2,
-                    maxLines: 4,
-                    decoration: const InputDecoration(
-                      labelText: 'Escribe una respuesta',
-                      filled: true,
-                      fillColor: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: ElevatedButton(
-                      onPressed: sendingReply
-                          ? null
-                          : () {
-                              onSubmitReply(comment.id);
-                            },
-                      child: sendingReply
-                          ? const SizedBox(
-                              height: 18,
-                              width: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text('Responder'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-          if (comment.replies.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Container(
-              margin: EdgeInsets.only(left: depth == 0 ? 6 : 2),
-              padding: EdgeInsets.only(left: depth == 0 ? 12 : 8),
-              decoration: const BoxDecoration(
-                border: Border(left: BorderSide(color: Color(0xFFE3EBF3))),
-              ),
-              child: Column(
-                children: comment.replies
-                    .map(
-                      (reply) => Padding(
-                        padding: const EdgeInsets.only(top: 10),
-                        child: _CommentCard(
-                          key: commentKeyFor(reply.id),
-                          comment: reply,
-                          commentKeyFor: commentKeyFor,
-                          highlightCommentId: highlightCommentId,
-                          replyingToCommentId: replyingToCommentId,
-                          replyControllerFor: replyControllerFor,
-                          sendingReplyForCommentId: sendingReplyForCommentId,
-                          onToggleLike: onToggleLike,
-                          onToggleReply: onToggleReply,
-                          onSubmitReply: onSubmitReply,
-                          depth: depth + 1,
-                        ),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-List<CommentItem> _updateCommentTree(
-  List<CommentItem> comments,
-  int commentId,
-  CommentItem Function(CommentItem current) updater,
-) {
-  return comments.map((comment) {
-    if (comment.id == commentId) {
-      return updater(comment);
-    }
-
-    if (comment.replies.isEmpty) {
-      return comment;
-    }
-
-    return comment.copyWith(
-      replies: _updateCommentTree(comment.replies, commentId, updater),
-    );
-  }).toList();
-}
-
-List<CommentItem> _insertReplyIntoTree(
-  List<CommentItem> comments,
-  int parentCommentId,
-  CommentItem reply,
-) {
-  return comments.map((comment) {
-    if (comment.id == parentCommentId) {
-      return comment.copyWith(replies: [...comment.replies, reply]);
-    }
-
-    if (comment.replies.isEmpty) {
-      return comment;
-    }
-
-    return comment.copyWith(
-      replies: _insertReplyIntoTree(comment.replies, parentCommentId, reply),
-    );
-  }).toList();
 }

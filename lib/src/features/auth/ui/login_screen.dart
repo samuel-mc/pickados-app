@@ -214,30 +214,6 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
                         ],
-                        const SizedBox(height: 20),
-                        Container(
-                          padding: const EdgeInsets.all(18),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF0F3557),
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                          child: const Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _FeatureText(
-                                'Inicio de sesion validado contra `/auth/login` y `/auth/session`.',
-                              ),
-                              SizedBox(height: 8),
-                              _FeatureText(
-                                'Sesion persistida con cookie como en la web.',
-                              ),
-                              SizedBox(height: 8),
-                              _FeatureText(
-                                'Errores de autenticacion visibles dentro de la pantalla.',
-                              ),
-                            ],
-                          ),
-                        ),
                       ],
                     ),
                   ),

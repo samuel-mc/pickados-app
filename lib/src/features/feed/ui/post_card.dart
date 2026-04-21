@@ -162,7 +162,7 @@ class _PickaPostCardState extends State<PickaPostCard> {
                   borderRadius: BorderRadius.circular(24),
                   onTap: widget.onOpenImage,
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(12),
                     child: Container(
                       constraints: const BoxConstraints(maxHeight: 520),
                       color: colors.softSurface,
@@ -266,6 +266,7 @@ class _PickaPostCardState extends State<PickaPostCard> {
               ),
               const SizedBox(height: 14),
               Wrap(
+                alignment: WrapAlignment.spaceBetween,
                 spacing: 8,
                 runSpacing: 8,
                 children: [

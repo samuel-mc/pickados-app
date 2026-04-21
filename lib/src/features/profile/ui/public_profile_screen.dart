@@ -5,6 +5,7 @@ import '../../../core/models/api_response.dart';
 import '../../../core/models/post_models.dart';
 import '../../../core/models/profile_models.dart';
 import '../../../services/api_client.dart';
+import '../../posts/ui/post_comments_sheet.dart';
 import '../../posts/ui/post_detail_screen.dart';
 import '../../posts/share_post.dart';
 import '../../feed/ui/post_card.dart';
@@ -423,6 +424,22 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                       currentUserId: widget.currentUserId,
                       onUpdatePickStatus: (status) => _updatePickStatus(post, status),
                       onViewProfile: null,
+                      onOpenImage: post.mediaUrls.isEmpty
+                          ? null
+                          : () async {
+                              await Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (context) => PostDetailScreen(
+                                    apiClient: widget.apiClient,
+                                    postId: post.id,
+                                    currentUserId: widget.currentUserId,
+                                  ),
+                                ),
+                              );
+                              if (context.mounted) {
+                                _load();
+                              }
+                            },
                       onOpenDetail: () async {
                         await Navigator.of(context).push(
                           MaterialPageRoute<void>(
@@ -435,6 +452,23 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                         );
                         if (context.mounted) {
                           _load();
+                        }
+                      },
+                      onOpenComments: () async {
+                        final commentsCount = await showPostCommentsSheet(
+                          context: context,
+                          apiClient: widget.apiClient,
+                          postId: post.id,
+                          initialCommentsCount: post.metrics.commentsCount,
+                        );
+                        if (commentsCount != null && mounted) {
+                          _replacePost(
+                            post.copyWith(
+                              metrics: post.metrics.copyWith(
+                                commentsCount: commentsCount,
+                              ),
+                            ),
+                          );
                         }
                       },
                     ),
