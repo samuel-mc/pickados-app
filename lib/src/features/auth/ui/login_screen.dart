@@ -24,6 +24,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -162,14 +163,29 @@ class _LoginScreenState extends State<LoginScreen> {
                               const SizedBox(height: 16),
                               TextFormField(
                                 controller: _passwordController,
-                                obscureText: true,
+                                obscureText: _obscurePassword,
                                 onFieldSubmitted: (_) => _submit(),
-                                decoration: const InputDecoration(
-                                  labelText: 'Contrasena',
+                                decoration: InputDecoration(
+                                  labelText: 'Contraseña',
+                                  suffixIcon: IconButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        _obscurePassword = !_obscurePassword;
+                                      });
+                                    },
+                                    icon: Icon(
+                                      _obscurePassword
+                                          ? Icons.visibility_rounded
+                                          : Icons.visibility_off_rounded,
+                                    ),
+                                    tooltip: _obscurePassword
+                                        ? 'Mostrar contraseña'
+                                        : 'Ocultar contraseña',
+                                  ),
                                 ),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return 'Escribe tu contrasena.';
+                                    return 'Escribe tu contraseña.';
                                   }
                                   return null;
                                 },
@@ -180,7 +196,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   alignment: Alignment.centerRight,
                                   child: TextButton(
                                     onPressed: widget.onForgotPassword,
-                                    child: const Text('Olvide mi contrasena'),
+                                    child: const Text('Olvide mi contraseña'),
                                   ),
                                 ),
                               ],
@@ -223,36 +239,6 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
-    );
-  }
-}
-
-class _FeatureText extends StatelessWidget {
-  const _FeatureText(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.only(top: 4),
-          child: Icon(
-            Icons.check_circle_rounded,
-            size: 16,
-            color: Color(0xFFF3B43F),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(color: Colors.white, height: 1.35),
-          ),
-        ),
-      ],
     );
   }
 }

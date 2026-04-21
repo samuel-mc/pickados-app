@@ -119,7 +119,7 @@ class _PickaPostCardState extends State<PickaPostCard> {
                   ],
                 ),
               ),
-              if (canFollow || widget.onFilterByAuthor != null) ...[
+              if (canFollow) ...[
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 8,
@@ -142,12 +142,6 @@ class _PickaPostCardState extends State<PickaPostCard> {
                               ? 'Siguiendo'
                               : 'Seguir',
                         ),
-                      ),
-                    if (widget.onFilterByAuthor != null)
-                      OutlinedButton.icon(
-                        onPressed: widget.onFilterByAuthor,
-                        icon: const Icon(Icons.filter_alt_rounded),
-                        label: const Text('Ver posts del autor'),
                       ),
                   ],
                 ),

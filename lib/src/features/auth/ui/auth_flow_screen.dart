@@ -378,15 +378,17 @@ class _SignupScreenState extends State<SignupScreen> {
             ],
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFFF7FAFD),
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: const Color(0xFFE3EBF3)),
+                color: const Color.fromARGB(255, 255, 255, 255),
+                border: Border(
+                  top: BorderSide(color: const Color(0xFFE3EBF3), width: 1),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const SizedBox(height: 16),
                   Text(
                     'Datos basicos',
                     style: Theme.of(context).textTheme.titleMedium,
@@ -471,22 +473,24 @@ class _SignupScreenState extends State<SignupScreen> {
             const SizedBox(height: 16),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(18),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: const Color(0xFFE3EBF3)),
+                border: Border(
+                  top: BorderSide(color: const Color(0xFFE3EBF3), width: 1),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const SizedBox(height: 16),
                   Text(
                     'Seguridad',
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Usa una contrasena segura para proteger tu cuenta.',
+                    'Usa una contraseña segura para proteger tu cuenta.',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                   const SizedBox(height: 16),
@@ -494,7 +498,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     controller: _passwordController,
                     obscureText: true,
                     textInputAction: TextInputAction.next,
-                    decoration: const InputDecoration(labelText: 'Contrasena'),
+                    decoration: const InputDecoration(labelText: 'Contraseña'),
                     validator: _validatePassword,
                   ),
                   const SizedBox(height: 16),
@@ -503,11 +507,11 @@ class _SignupScreenState extends State<SignupScreen> {
                     obscureText: true,
                     onFieldSubmitted: (_) => _submit(),
                     decoration: const InputDecoration(
-                      labelText: 'Confirmar contrasena',
+                      labelText: 'Confirmar contraseña',
                     ),
                     validator: (value) {
                       if (value != _passwordController.text) {
-                        return 'Las contrasenas no coinciden.';
+                        return 'Las contraseñas no coinciden.';
                       }
                       return null;
                     },
@@ -515,7 +519,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 48),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -594,7 +598,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       }
       setState(() {
         _message =
-            'Te enviamos un enlace temporal para actualizar tu contrasena.';
+            'Te enviamos un enlace temporal para actualizar tu contraseña.';
       });
     } on ApiException catch (error) {
       if (!mounted) {
@@ -622,7 +626,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return AuthScaffold(
-      title: 'Recuperar contrasena',
+      title: 'Recuperar contraseña',
       subtitle:
           'Ingresa tu correo y te enviaremos un enlace para restablecerla.',
       onBack: widget.onBack,
@@ -741,7 +745,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         return;
       }
       setState(() {
-        _message = 'Contrasena actualizada correctamente.';
+        _message = 'Contraseña actualizada correctamente.';
       });
     } on ApiException catch (error) {
       if (!mounted) {
@@ -755,7 +759,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         return;
       }
       setState(() {
-        _errorMessage = 'No fue posible actualizar la contrasena.';
+        _errorMessage = 'No fue posible actualizar la contraseña.';
       });
     } finally {
       if (mounted) {
@@ -771,9 +775,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     final hasToken = widget.token?.trim().isNotEmpty ?? false;
 
     return AuthScaffold(
-      title: 'Actualizar contrasena',
+      title: 'Actualizar contraseña',
       subtitle: hasToken
-          ? 'Crea una nueva contrasena para tu cuenta.'
+          ? 'Crea una nueva contraseña para tu cuenta.'
           : 'Abre este flujo desde el enlace recibido por correo.',
       onBack: widget.onBack,
       child: Form(
@@ -801,7 +805,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             TextFormField(
               controller: _passwordController,
               obscureText: true,
-              decoration: const InputDecoration(labelText: 'Nueva contrasena'),
+              decoration: const InputDecoration(labelText: 'Nueva contraseña'),
               validator: _validatePassword,
             ),
             const SizedBox(height: 16),
@@ -809,11 +813,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               controller: _confirmPasswordController,
               obscureText: true,
               decoration: const InputDecoration(
-                labelText: 'Confirmar nueva contrasena',
+                labelText: 'Confirmar nueva contraseña',
               ),
               validator: (value) {
                 if (value != _passwordController.text) {
-                  return 'Las contrasenas no coinciden.';
+                  return 'Las contraseñas no coinciden.';
                 }
                 return null;
               },
@@ -830,7 +834,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         color: Colors.white,
                       ),
                     )
-                  : const Text('Actualizar contrasena'),
+                  : const Text('Actualizar contraseña'),
             ),
           ],
         ),
