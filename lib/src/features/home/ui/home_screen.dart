@@ -12,7 +12,7 @@ import '../../notifications/notifications_controller.dart';
 import '../../notifications/ui/notifications_screen.dart';
 import '../../profile/ui/profile_screen.dart';
 import '../../profile/ui/public_profile_screen.dart';
-import '../../posts/ui/create_post_screen.dart';
+import '../../posts/ui/create_post_v2_screen.dart';
 import '../../posts/ui/post_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -304,7 +304,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 final created = await Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (context) =>
-                        CreatePostScreen(apiClient: widget.apiClient),
+                        CreatePostV2Screen(apiClient: widget.apiClient),
                   ),
                 );
 
@@ -313,7 +313,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 }
 
                 if (created != null) {
-                  await _feedController.refresh();
+                  setState(() {
+                    _currentIndex = 1;
+                    _profileRefreshTick += 1;
+                  });
                   messenger.showSnackBar(
                     const SnackBar(
                       content: Text('Post publicado correctamente.'),

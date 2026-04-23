@@ -369,6 +369,17 @@ class ApiClient {
     return envelope.data;
   }
 
+  Future<CatalogItem?> getHomePrashe() async {
+    final json = await _send('GET', '/catalogs/generate-home-prashe');
+    final envelope = ApiEnvelope.fromJson(
+      json,
+      (raw) => raw is Map
+          ? CatalogItem.fromJson(Map<String, dynamic>.from(raw))
+          : null,
+    );
+    return envelope.data;
+  }
+
   Future<MeProfile> getMyProfile() async {
     final json = await _send('GET', '/me/profile');
     return MeProfile.fromJson(json);

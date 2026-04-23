@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../app/app_theme.dart';
 import '../../../core/models/post_models.dart';
@@ -61,6 +62,21 @@ class _PickaPostCardState extends State<PickaPostCard> {
     final imageUrl = post.mediaUrls.isNotEmpty ? post.mediaUrls.first : null;
     final isOwner = widget.currentUserId == post.author.id;
     final canFollow = widget.onToggleFollow != null && !isOwner;
+    final hasPick = post.simplePick != null || post.parley != null;
+    final headerSport = post.simplePick != null
+        ? post.simplePick!.sport
+        : post.parleySelections.length > 1
+        ? 'Multi deporte'
+        : post.parleySelections.isNotEmpty
+        ? post.parleySelections.first.sport
+        : null;
+    final headerLeague = post.simplePick != null
+        ? post.simplePick!.league
+        : post.parleySelections.length > 1
+        ? '${post.parleySelections.length} selecciones'
+        : post.parleySelections.isNotEmpty
+        ? post.parleySelections.first.league
+        : null;
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -119,6 +135,30 @@ class _PickaPostCardState extends State<PickaPostCard> {
                   ],
                 ),
               ),
+              if (hasPick && headerSport != null && headerLeague != null) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '$headerSport > $headerLeague',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: colors.textMuted,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    _StatusMenu(
+                      currentStatus: post.currentResultStatus,
+                      isOwner: isOwner,
+                      onSelected: widget.onUpdatePickStatus,
+                    ),
+                  ],
+                ),
+              ],
               if (canFollow) ...[
                 const SizedBox(height: 12),
                 Wrap(
@@ -212,9 +252,6 @@ class _PickaPostCardState extends State<PickaPostCard> {
                 const SizedBox(height: 16),
                 _PickMeta(
                   pick: post.simplePick!,
-                  currentStatus: post.currentResultStatus,
-                  isOwner: isOwner,
-                  onUpdatePickStatus: widget.onUpdatePickStatus,
                 ),
               ],
               if (post.parleySelections.isNotEmpty) ...[
@@ -222,9 +259,6 @@ class _PickaPostCardState extends State<PickaPostCard> {
                 _ParleyMeta(
                   selections: post.parleySelections,
                   parley: post.parley,
-                  currentStatus: post.currentResultStatus,
-                  isOwner: isOwner,
-                  onUpdatePickStatus: widget.onUpdatePickStatus,
                 ),
               ],
               const SizedBox(height: 16),
@@ -357,55 +391,43 @@ class _Avatar extends StatelessWidget {
 class _PickMeta extends StatelessWidget {
   const _PickMeta({
     required this.pick,
-    required this.currentStatus,
-    required this.isOwner,
-    required this.onUpdatePickStatus,
   });
 
   final PickSummary pick;
-  final String currentStatus;
-  final bool isOwner;
-  final Future<void> Function(ResultStatus status) onUpdatePickStatus;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<PickadosColors>()!;
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: colors.blueSurface,
         borderRadius: BorderRadius.circular(22),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '${pick.sport} • ${pick.league}',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ),
-              _StatusMenu(
-                currentStatus: currentStatus,
-                isOwner: isOwner,
-                onSelected: onUpdatePickStatus,
-              ),
-            ],
+          Expanded(
+            child: Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                _MiniTag(label: 'Stake ${pick.stake.toStringAsFixed(2)}'),
+                if (pick.eventDate != null)
+                  _MiniTag(label: _formatEventDate(pick.eventDate!))
+                else
+                  const _MiniTag(label: 'Fecha N/A'),
+              ],
+            ),
           ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _MiniTag(label: 'Stake ${pick.stake.toStringAsFixed(2)}'),
-              _MiniTag(label: _resultLabel(currentStatus)),
-              if (pick.sportsbookName != null &&
-                  pick.sportsbookName!.isNotEmpty)
-                _MiniTag(label: pick.sportsbookName!),
-              _MiniTag(label: 'Simple pick'),
-            ],
+          const SizedBox(width: 10),
+          _SportsbookLogoLink(
+            name: pick.sportsbookName,
+            logoUrl: pick.sportsbookLogoUrl,
+            baseUrl: pick.sportsbookBaseUrl,
+            colorScheme: theme.colorScheme,
+            borderColor: colors.borderSoft,
+            mutedColor: colors.textMuted,
           ),
         ],
       ),
@@ -417,20 +439,15 @@ class _ParleyMeta extends StatelessWidget {
   const _ParleyMeta({
     required this.selections,
     required this.parley,
-    required this.currentStatus,
-    required this.isOwner,
-    required this.onUpdatePickStatus,
   });
 
   final List<ParleySelectionSummary> selections;
   final ParleySummary? parley;
-  final String currentStatus;
-  final bool isOwner;
-  final Future<void> Function(ResultStatus status) onUpdatePickStatus;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<PickadosColors>()!;
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -448,24 +465,36 @@ class _ParleyMeta extends StatelessWidget {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
-              _StatusMenu(
-                currentStatus: currentStatus,
-                isOwner: isOwner,
-                onSelected: onUpdatePickStatus,
-              ),
             ],
           ),
           const SizedBox(height: 8),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
+          Row(
             children: [
-              if (parley != null)
-                _MiniTag(label: 'Stake ${parley!.stake.toStringAsFixed(2)}'),
-              _MiniTag(label: _resultLabel(currentStatus)),
-              if (parley?.sportsbookName != null &&
-                  parley!.sportsbookName!.isNotEmpty)
-                _MiniTag(label: parley!.sportsbookName!),
+              Expanded(
+                child: Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    if (parley != null)
+                      _MiniTag(label: 'Stake ${parley!.stake.toStringAsFixed(2)}')
+                    else
+                      const _MiniTag(label: 'Stake N/A'),
+                    if (parley?.eventDate != null)
+                      _MiniTag(label: _formatEventDate(parley!.eventDate!))
+                    else
+                      const _MiniTag(label: 'Fecha N/A'),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              _SportsbookLogoLink(
+                name: parley?.sportsbookName,
+                logoUrl: parley?.sportsbookLogoUrl,
+                baseUrl: parley?.sportsbookBaseUrl,
+                colorScheme: theme.colorScheme,
+                borderColor: colors.borderSoft,
+                mutedColor: colors.textMuted,
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -544,6 +573,98 @@ class _StatusMenu extends StatelessWidget {
   }
 }
 
+class _SportsbookLogoLink extends StatelessWidget {
+  const _SportsbookLogoLink({
+    required this.name,
+    required this.logoUrl,
+    required this.baseUrl,
+    required this.colorScheme,
+    required this.borderColor,
+    required this.mutedColor,
+  });
+
+  final String? name;
+  final String? logoUrl;
+  final String? baseUrl;
+  final ColorScheme colorScheme;
+  final Color borderColor;
+  final Color mutedColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final uri = baseUrl != null ? Uri.tryParse(baseUrl!) : null;
+    final canLaunch = uri != null && (uri.isScheme('https') || uri.isScheme('http'));
+
+    Widget child;
+
+    if (logoUrl != null && logoUrl!.isNotEmpty) {
+      child = ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Image.network(
+          logoUrl!,
+          width: 44,
+          height: 44,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return _fallbackBox(label: name);
+          },
+        ),
+      );
+    } else {
+      child = _fallbackBox(label: name);
+    }
+
+    child = Container(
+      width: 48,
+      height: 48,
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: borderColor),
+      ),
+      child: Center(child: child),
+    );
+
+    if (!canLaunch) {
+      return child;
+    }
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: () async {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      },
+      child: child,
+    );
+  }
+
+  Widget _fallbackBox({required String? label}) {
+    final text = (label ?? '').trim();
+    final safeText = text.isEmpty
+        ? ''
+        : text.length <= 2
+        ? text
+        : text.substring(0, 2);
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        safeText.isEmpty ? 'SB' : safeText.toUpperCase(),
+        style: TextStyle(
+          color: mutedColor,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
 Color _statusColor(String status) {
   switch (status) {
     case 'WON':
@@ -568,6 +689,14 @@ String _resultLabel(String status) {
     default:
       return 'Pendiente';
   }
+}
+
+String _formatEventDate(String raw) {
+  final parsed = DateTime.tryParse(raw)?.toLocal();
+  if (parsed == null) {
+    return 'Fecha $raw';
+  }
+  return 'Fecha ${DateFormat('dd MMM').format(parsed)}';
 }
 
 class _MiniTag extends StatelessWidget {

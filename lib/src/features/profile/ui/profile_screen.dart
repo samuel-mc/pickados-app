@@ -1,7 +1,4 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../../../app/app_theme.dart';
 import '../../../core/models/api_response.dart';
@@ -14,6 +11,7 @@ import '../../feed/ui/post_card.dart';
 import '../../posts/share_post.dart';
 import '../../posts/ui/post_comments_sheet.dart';
 import '../../posts/ui/post_detail_screen.dart';
+import 'profile_avatar_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
@@ -33,6 +31,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _loading = true;
   String? _errorMessage;
   MeProfile? _profile;
+  PublicProfile? _publicProfile;
   List<PostItem> _posts = const [];
 
   @override
@@ -59,6 +58,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     try {
       final results = await Future.wait([
         widget.apiClient.getMyProfile(),
+        widget.apiClient.getPublicProfile(currentUserId),
         widget.apiClient.getPostsByUser(currentUserId),
       ]);
 
@@ -68,7 +68,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       setState(() {
         _profile = results[0] as MeProfile;
-        _posts = (results[1] as PagedResponse<PostItem>).items;
+        _publicProfile = results[1] as PublicProfile;
+        _posts = (results[2] as PagedResponse<PostItem>).items;
       });
     } on ApiException catch (error) {
       if (!mounted) {
@@ -201,6 +202,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return const SizedBox.shrink();
     }
 
+    final publicProfile = _publicProfile;
     final initials = (profile.fullName.isNotEmpty ? profile.fullName : profile.username)
         .split(RegExp(r'\s+'))
         .where((part) => part.isNotEmpty)
@@ -244,8 +246,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             const SizedBox(height: 6),
                             Text(profile.email, style: theme.textTheme.bodyMedium),
+                            if (publicProfile?.validatedTipster == true) ...[
+                              const SizedBox(height: 10),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: colors.success.withValues(alpha: 0.14),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.verified_rounded,
+                                      size: 18,
+                                      color: colors.success,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Tipster validado',
+                                      style: TextStyle(
+                                        color: colors.success,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            if (publicProfile != null) ...[
+                              const SizedBox(height: 14),
+                              Row(
+                                children: [
+                                  _StatPill(
+                                    label: 'Seguidores',
+                                    value: publicProfile.followersCount,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  _StatPill(
+                                    label: 'Siguiendo',
+                                    value: publicProfile.followingCount,
+                                  ),
+                                ],
+                              ),
+                            ],
                           ],
                         ),
+                      ),
+                      IconButton(
+                        onPressed: openEditor,
+                        tooltip: 'Editar perfil',
+                        icon: const Icon(Icons.edit_rounded),
                       ),
                     ],
                   ),
@@ -392,15 +446,7 @@ class ProfileEditScreen extends StatefulWidget {
 }
 
 class _ProfileEditScreenState extends State<ProfileEditScreen> {
-  static const _allowedMimeTypes = {
-    'image/jpeg',
-    'image/png',
-    'image/webp',
-  };
-  static const _maxImageBytes = 5 * 1024 * 1024;
-
   final _formKey = GlobalKey<FormState>();
-  final _imagePicker = ImagePicker();
   final _nameController = TextEditingController();
   final _lastnameController = TextEditingController();
   final _bioController = TextEditingController();
@@ -413,10 +459,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
   bool _loading = true;
   bool _saving = false;
-  bool _uploadingAvatar = false;
   String? _errorMessage;
-  String? _avatarError;
-  XFile? _selectedAvatar;
 
   @override
   void initState() {
@@ -559,90 +602,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     }
   }
 
-  Future<void> _pickAvatar() async {
-    try {
-      final picked = await _imagePicker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 90,
-      );
-
-      if (picked == null || !mounted) {
-        return;
-      }
-
-      final size = await picked.length();
-      final mimeType = picked.mimeType ?? _guessMimeType(picked.name);
-
-      if (!_allowedMimeTypes.contains(mimeType)) {
-        setState(() {
-          _avatarError = 'Usa una imagen JPG, PNG o WebP.';
-        });
-        return;
-      }
-
-      if (size > _maxImageBytes) {
-        setState(() {
-          _avatarError = 'La imagen no debe pesar mas de 5 MB.';
-        });
-        return;
-      }
-
-      setState(() {
-        _selectedAvatar = picked;
-        _avatarError = null;
-        _uploadingAvatar = true;
-      });
-
-      final updated = await widget.apiClient.uploadProfileAvatar(
-        bytes: await picked.readAsBytes(),
-        contentType: mimeType,
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        _applyProfile(updated);
-        _selectedAvatar = null;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Avatar actualizado.')),
-      );
-    } on ApiException catch (error) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _avatarError = error.message;
-      });
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _avatarError = 'No se pudo actualizar la foto de perfil.';
-      });
-    } finally {
-      if (mounted) {
-        setState(() {
-          _uploadingAvatar = false;
-        });
-      }
-    }
-  }
-
-  String _guessMimeType(String filename) {
-    final lower = filename.toLowerCase();
-    if (lower.endsWith('.png')) {
-      return 'image/png';
-    }
-    if (lower.endsWith('.webp')) {
-      return 'image/webp';
-    }
-    return 'image/jpeg';
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -707,11 +666,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _AvatarEditor(
-                          profile: profile,
-                          selectedAvatar: _selectedAvatar,
+                        _ProfileAvatar(
+                          avatarUrl: profile.avatarUrl,
                           initials: initials.isEmpty ? 'P' : initials,
-                          uploadingAvatar: _uploadingAvatar,
                         ),
                         const SizedBox(width: 16),
                         Expanded(
@@ -725,20 +682,34 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                               Text(profile.email),
                               const SizedBox(height: 12),
                               OutlinedButton.icon(
-                                onPressed: _uploadingAvatar ? null : _pickAvatar,
+                                onPressed: () async {
+                                  final messenger = ScaffoldMessenger.of(context);
+                                  final navigator = Navigator.of(context);
+                                  final updated = await navigator.push<MeProfile>(
+                                    MaterialPageRoute(
+                                      builder: (context) => ProfileAvatarScreen(
+                                        apiClient: widget.apiClient,
+                                        profile: profile,
+                                      ),
+                                    ),
+                                  );
+
+                                  if (!mounted) {
+                                    return;
+                                  }
+
+                                  if (updated != null) {
+                                    setState(() {
+                                      _applyProfile(updated);
+                                    });
+                                    messenger.showSnackBar(
+                                      const SnackBar(content: Text('Avatar actualizado.')),
+                                    );
+                                  }
+                                },
                                 icon: const Icon(Icons.photo_camera_back_outlined),
                                 label: const Text('Cambiar foto'),
                               ),
-                              if (_avatarError != null) ...[
-                                const SizedBox(height: 8),
-                                Text(
-                                  _avatarError!,
-                                  style: TextStyle(
-                                    color: theme.colorScheme.error,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
                             ],
                           ),
                         ),
@@ -844,6 +815,49 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   }
 }
 
+class _StatPill extends StatelessWidget {
+  const _StatPill({required this.label, required this.value});
+
+  final String label;
+  final int value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.extension<PickadosColors>()!;
+
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: colors.softSurface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: colors.borderSoft),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: colors.textMuted,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '$value',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ProfileAvatar extends StatelessWidget {
   const _ProfileAvatar({
     required this.avatarUrl,
@@ -885,72 +899,6 @@ class _ProfileAvatar extends StatelessWidget {
                 fontSize: 28,
               ),
             ),
-    );
-  }
-}
-
-class _AvatarEditor extends StatelessWidget {
-  const _AvatarEditor({
-    required this.profile,
-    required this.selectedAvatar,
-    required this.initials,
-    required this.uploadingAvatar,
-  });
-
-  final MeProfile profile;
-  final XFile? selectedAvatar;
-  final String initials;
-  final bool uploadingAvatar;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).extension<PickadosColors>()!;
-
-    return Container(
-      height: 84,
-      width: 84,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        gradient: profile.avatarUrl == null && selectedAvatar == null
-            ? LinearGradient(
-                colors: [Theme.of(context).colorScheme.primary, colors.danger],
-              )
-            : null,
-      ),
-      clipBehavior: Clip.antiAlias,
-      alignment: Alignment.center,
-      child: uploadingAvatar
-          ? const CircularProgressIndicator(color: Colors.white)
-          : selectedAvatar != null
-              ? FutureBuilder<Uint8List>(
-                  future: selectedAvatar!.readAsBytes(),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return const CircularProgressIndicator(color: Colors.white);
-                    }
-                    return Image.memory(
-                      snapshot.data!,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: double.infinity,
-                    );
-                  },
-                )
-              : profile.avatarUrl != null
-                  ? Image.network(
-                      profile.avatarUrl!,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: double.infinity,
-                    )
-                  : Text(
-                      initials,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 28,
-                      ),
-                    ),
     );
   }
 }

@@ -196,16 +196,25 @@ class PickSummary {
     required this.resultStatus,
     this.eventDate,
     this.sportsbookName,
+    this.sportsbookBaseUrl,
+    this.sportsbookLogoUrl,
   });
 
   factory PickSummary.fromJson(Map<String, dynamic> json) {
+    final sportsbook = json['sportsbook'];
+    final sportsbookMap = sportsbook is Map
+        ? Map<String, dynamic>.from(sportsbook)
+        : const <String, dynamic>{};
+
     return PickSummary(
       sport: (json['sport'] ?? '').toString(),
       league: (json['league'] ?? '').toString(),
       stake: (json['stake'] as num?)?.toDouble() ?? 0,
       resultStatus: (json['resultStatus'] ?? 'PENDING').toString(),
       eventDate: json['eventDate']?.toString(),
-      sportsbookName: ((json['sportsbook'] as Map?)?['name'])?.toString(),
+      sportsbookName: sportsbookMap['name']?.toString(),
+      sportsbookBaseUrl: sportsbookMap['baseUrl']?.toString(),
+      sportsbookLogoUrl: sportsbookMap['logoUrl']?.toString(),
     );
   }
 
@@ -215,6 +224,8 @@ class PickSummary {
   final String resultStatus;
   final String? eventDate;
   final String? sportsbookName;
+  final String? sportsbookBaseUrl;
+  final String? sportsbookLogoUrl;
 
   PickSummary copyWith({String? resultStatus}) {
     return PickSummary(
@@ -224,6 +235,8 @@ class PickSummary {
       resultStatus: resultStatus ?? this.resultStatus,
       eventDate: eventDate,
       sportsbookName: sportsbookName,
+      sportsbookBaseUrl: sportsbookBaseUrl,
+      sportsbookLogoUrl: sportsbookLogoUrl,
     );
   }
 }
@@ -234,14 +247,23 @@ class ParleySummary {
     required this.resultStatus,
     this.eventDate,
     this.sportsbookName,
+    this.sportsbookBaseUrl,
+    this.sportsbookLogoUrl,
   });
 
   factory ParleySummary.fromJson(Map<String, dynamic> json) {
+    final sportsbook = json['sportsbook'];
+    final sportsbookMap = sportsbook is Map
+        ? Map<String, dynamic>.from(sportsbook)
+        : const <String, dynamic>{};
+
     return ParleySummary(
       stake: (json['stake'] as num?)?.toDouble() ?? 0,
       resultStatus: (json['resultStatus'] ?? 'PENDING').toString(),
       eventDate: json['eventDate']?.toString(),
-      sportsbookName: ((json['sportsbook'] as Map?)?['name'])?.toString(),
+      sportsbookName: sportsbookMap['name']?.toString(),
+      sportsbookBaseUrl: sportsbookMap['baseUrl']?.toString(),
+      sportsbookLogoUrl: sportsbookMap['logoUrl']?.toString(),
     );
   }
 
@@ -249,6 +271,8 @@ class ParleySummary {
   final String resultStatus;
   final String? eventDate;
   final String? sportsbookName;
+  final String? sportsbookBaseUrl;
+  final String? sportsbookLogoUrl;
 
   ParleySummary copyWith({String? resultStatus}) {
     return ParleySummary(
@@ -256,6 +280,8 @@ class ParleySummary {
       resultStatus: resultStatus ?? this.resultStatus,
       eventDate: eventDate,
       sportsbookName: sportsbookName,
+      sportsbookBaseUrl: sportsbookBaseUrl,
+      sportsbookLogoUrl: sportsbookLogoUrl,
     );
   }
 }
